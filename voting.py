@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-#seed for testing consistency
+#seed for testing consistency, remove eventually
 np.random.seed(90210)
 
 
