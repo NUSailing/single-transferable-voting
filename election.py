@@ -1,21 +1,13 @@
 import pandas as pd
 import numpy as np
 
-#seed for testing consistency, remove eventually
-np.random.seed(90210)
-
-
-##########
-
 class Election():
     '''
     runs single transferrable voting
     if number of new winners in final round exceeds total number of spots left, returns current winners as well as new winners to allow for revoting with new winners
     '''
+    
     def __init__(self, num_candidates, path):
-        import pandas as pd
-        import numpy as np
-        
         '''
         num_candidates (int): number of total candidates
         path (str): path to csv of votes num_voters rows and num_candidates+1 columns (column 0 is names)
@@ -44,8 +36,6 @@ class Election():
             self.tallies[c] += np.sum(self.indicator[0,:,c])
 
 
-
-
     def increment_round(self):
         '''
         increments election by a single round
@@ -66,7 +56,6 @@ class Election():
         for c in who_is_over:
             if not self.winners[c]:
                 new_winners.add(c)
-
 
         if len(new_winners) + np.sum(self.winners) > self.num_spots:
             return list(new_winners)
@@ -127,8 +116,6 @@ class Election():
                         self.tallies[cand] += frac
 
 
-
-
     def run_election(self):
         extras = None
         while np.sum(self.winners) < self.num_spots:
@@ -140,34 +127,3 @@ class Election():
             if self.winners[i]:
                 ret += [i]
         return ret, extras
-
-
-
-
-########## TESTS ######
-num_candidates = 150
-num_spots = 25
-num_voters = 50
-np_data = [np.random.choice(np.arange(num_candidates), num_spots, replace=False)]
-for i in range(num_voters-1):
-    np_data = np.append(np_data, [np.random.choice(np.arange(num_candidates), num_spots, replace=False)], axis=0)
-
-names = np.zeros((num_voters,), dtype='object')
-for i in range(len(names)):
-    names[i] = 'phil'
-names = np.array([names]).T
-info = np.concatenate((names, np_data), axis=1)
-data = pd.DataFrame(data=info)
-
-print(data.shape)
-
-data.to_csv("out.csv", index=False)
-
-data.head(10)
-
-
-election = Election(num_candidates, 'out.csv')
-ret, extras = election.run_election()
-print(ret)
-print(len(ret))
-print(extras)
