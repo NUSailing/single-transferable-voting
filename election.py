@@ -4,7 +4,7 @@ import numpy as np
 class Election():
     '''
     runs single transferrable voting
-    if number of new winners in final round exceeds total number of spots left, returns current winners as well as new winners to allow for revoting with new winners
+    takes precautions in tying scenarios - tied losers or tied winners with not enough spots left
     '''
     
     def __init__(self, num_candidates, path):
@@ -13,10 +13,10 @@ class Election():
         path (str): path to csv of votes num_voters rows and num_candidates+1 columns (column 0 is names)
         '''
 
-        #read csv
+        # read csv
         data = pd.read_csv(path)
     
-        #init internals
+        # init internals
         self.num_voters = data.shape[0]
         self.num_spots = data.shape[1]-1
         self.num_candidates = num_candidates
@@ -39,75 +39,93 @@ class Election():
     def increment_round(self):
         '''
         increments election by a single round
-
         who_is_over: set of candidates for which the number of votes allocated to them has exceeded the threshold
         new_winners: set of candidates who became winners (exceeded threshold) this round
         '''
 
-        who_is_over = set()
+        # find all potential new winners
         new_winners = set()
-
-        #find all who are over
         for i in range(self.num_candidates):
-            if self.tallies[i] != None and self.tallies[i] > self.threshold:
-                who_is_over.add(i)
-        
-        #fill new_winners [Can we combine these loops?^^]
-        for c in who_is_over:
-            if not self.winners[c]:
-                new_winners.add(c)
+            if self.tallies[i] != None and self.tallies[i] >= self.threshold:
+                new_winners.add(i)
 
-        if len(new_winners) + np.sum(self.winners) > self.num_spots:
-            return list(new_winners)
+        # if the new winners would be too many, return the new winners as extras
+        # otherwise, make them all winners (don't make tallies None yet)
+        if np.sum(self.winners) + len(new_winners) > self.num_spots:
+            return list(new_winners), "potential winners"
+        for w in new_winners:
+            self.winners[w] = True
+
+        # if there are no new winners, find all that have minimum tally
+        if len(new_winners) == 0:
+
+            # find minimum tally
+            minimum = float("inf")
+            for c in range(self.num_candidates):
+                if self.tallies[c] != None and self.tallies[c] < minimum:
+                    minimum = self.tallies[c]
+            
+            # this shouldn't ever happen, but just in case
+            if minimum == float("inf"):
+                return "no minimum"
+
+            # get indices of all candidates with minimum tally
+            allminidcs = [c for c in range(self.num_candidates) if self.tallies[c] != None and self.tallies[c] == minimum]
+
+            # if removing all minimum tally candidates would leave not enough candidiates to choose from
+            inv = np.invert(np.isnan(self.tallies))
+            if np.sum(inv) - len(allminidcs) < self.num_spots - np.sum(self.winners):
+
+                # potential winners are candidates who are not yet winners and are not tied for losers
+                potential_winners = [c for c in range(self.num_candidates) if inv[c] and c not in allminidcs]
+
+                if np.sum(self.winners) + len(potential_winners) <= self.num_spots:
+                    if np.sum(self.winners) + len(potential_winners) == self.num_spots:
+                        for w in potential_winners:
+                            self.winners[w] = True
+                        return "clean finish"
+                    # if winners + potential winners < num_spots
+                    else:
+                        for w in potential_winners:
+                            self.winners[w] = True
+                        return allminidcs, "potential winners"
+                else:
+                    return potential_winners, "potential winners"
+
+            # if there will still be enough people left to choose from after removing all minimum candidates
+            for c in allminidcs:
+
+                #set loser tallies to None
+                self.tallies[c] = None
+
+                #get who voted for them
+                who_voted = set()
+                for v in range(self.num_voters):
+                    if self.voter_states[v] < self.num_spots and self.indicator[self.voter_states[v],v,c] != 0:
+                        # only add voters who have more votes (aren't exhausted)
+                        who_voted.add(v)
+                        self.voter_states[v] += 1
+
+                for v in who_voted:
+                    if self.voter_states[v] < self.num_spots:
+                        cand = self.indicator[self.voter_states[v],v,:].nonzero()[0][0]
+                        self.tallies[cand] += 1
+
+        # if new winners and they wouldn't be too many
         else:
             for w in new_winners:
-                self.winners[w] = True
-        
-        if self.num_spots >= sum(np.invert(np.isnan(self.tallies))):
-            inv = np.invert(np.isnan(self.tallies))
-            self.winners[np.where(inv)[0]] = True
-            return "Type 1"
-
-        # if no (new?) winners. should this be new_winners?
-        elif len(who_is_over) == 0:
-            minimum = float("inf")
-            minidx = None
-            for i in range(self.num_candidates):
-                if self.tallies[i] != None and self.tallies[i] < minimum:
-                    minimum = self.tallies[i]
-                    minidx = i
-
-            #set tallies to None for least voted for
-            who_voted = set()
-            self.tallies[minidx] = None
-            if minidx == None:
-                return "Type 2"
-
-            #get who voted for them
-            for j in range(self.num_voters):
-                if self.voter_states[j] < self.num_spots and self.indicator[self.voter_states[j],j,minidx] != 0:
-                    # only add voters who have more votes (aren't exhausted)
-                    who_voted.add(j)
-                    self.voter_states[j] += 1
-          
-            for v in who_voted:
-                if self.voter_states[v] < self.num_spots:
-                    cand = self.indicator[self.voter_states[v],v,:].nonzero()[0][0]
-                    self.tallies[cand] += 1
-
-        else:
-            # if new winners
-            for i in who_is_over:
                 who_voted = set()
-                for j in range(self.num_voters):
-                    if self.voter_states[j] < self.num_spots and self.indicator[self.voter_states[j],j,i] != 0:
-                    # only add voters who have more votes
-                        who_voted.add(j)
-                        self.voter_states[j] += 1
+                for i in range(self.num_voters):
+                    if self.voter_states[i] < self.num_spots and self.indicator[self.voter_states[i],i,w] != 0:
+                        # only add voters who have more votes
+                        who_voted.add(i)
+                        self.voter_states[i] += 1
                 
                 #get fractional vote value
-                frac = (self.tallies[i] - self.threshold) / len(who_voted)
-                self.tallies[i] = self.threshold
+                frac = (self.tallies[w] - self.threshold) / len(who_voted)
+
+                # set winner tallies to None
+                self.tallies[w] = None
 
                 #assign fractional votes
                 for v in who_voted:
@@ -117,6 +135,10 @@ class Election():
 
 
     def run_election(self):
+        '''
+        runs entire election iteratively
+        '''
+
         extras = None
         while np.sum(self.winners) < self.num_spots:
             extras = self.increment_round()

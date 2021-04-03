@@ -7,7 +7,10 @@ num_voters = 50
 
 dataset.make_dataset(num_candidates, num_spots, num_voters)
 
-elect = election.Election(num_candidates, "out.csv")
+name = "out.csv"
+#name = "custom.csv"
+
+elect = election.Election(num_candidates, name)
 ret, extras = elect.run_election()
 print(ret)
 print(len(ret))

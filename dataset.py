@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 def make_dataset(n_cands, n_spots, n_voters, name="out.csv", seed=90210):
-    np.random.seed(seed)
+    #np.random.seed(seed)
 
     np_data = [np.random.choice(np.arange(n_cands), n_spots, replace=False)]
     for i in range(n_voters-1):
