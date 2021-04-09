@@ -10,7 +10,7 @@ def make_dataset(n_cands, n_spots, n_voters, name="out.csv", seed=90210):
 
     names = np.zeros((n_voters,), dtype='object')
     for i in range(len(names)):
-        names[i] = 'phil'
+        names[i] = 'phil' + str(i)
     names = np.array([names]).T
 
     info = np.concatenate((names, np_data), axis=1)
