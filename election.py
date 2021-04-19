@@ -149,3 +149,7 @@ class Election():
             if self.winners[i]:
                 ret += [i]
         return ret, extras
+
+
+    def get_threshold(self):
+        return self.threshold
