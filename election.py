@@ -17,7 +17,7 @@ class Election():
         # read csv
         data = pd.read_csv(path)
         for i in range(data.shape[0]):
-            assert len(set(data.iloc[i, :])) == data.shape[1], f'{data.iloc[i, 0].split('@')[0]} voted for the same person twice!'
+            assert len(set(data.iloc[i, :])) == data.shape[1], f"{data.iloc[i, 0].split('@')[0]} voted for the same person twice!"
     
         # init internals
         self.num_voters = data.shape[0]
