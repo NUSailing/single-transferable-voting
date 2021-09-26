@@ -1,4 +1,3 @@
-import dataset
 import election
 
 num_candidates = 150
