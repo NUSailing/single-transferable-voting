@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from typing import Tuple, Union, List
 
 class Election():
     '''
@@ -7,14 +8,16 @@ class Election():
     takes precautions in tying scenarios - tied losers or tied winners with not enough spots left
     '''
     
-    def __init__(self, num_candidates, path):
+    def __init__(self, num_candidates: int, path: str) -> None:
         '''
-        num_candidates (int): number of total candidates
-        path (str): path to csv of votes num_voters rows and num_candidates+1 columns (column 0 is names)
+        num_candidates: number of total candidates
+        path: path to csv of votes num_voters rows and num_candidates+1 columns (column 0 is names)
         '''
 
         # read csv
         data = pd.read_csv(path)
+        for i in range(data.shape[0]):
+            assert len(set(data.iloc[i, :])) == data.shape[1], f'{data.iloc[i, 0].split('@')[0]} voted for the same person twice!'
     
         # init internals
         self.num_voters = data.shape[0]
@@ -36,9 +39,10 @@ class Election():
             self.tallies[c] += np.sum(self.indicator[0,:,c])
 
 
-    def increment_round(self):
+    def increment_round(self) -> Union[Tuple[List[int], str], str, None]:
         '''
         increments election by a single round
+
         who_is_over: set of candidates for which the number of votes allocated to them has exceeded the threshold
         new_winners: set of candidates who became winners (exceeded threshold) this round
         '''
@@ -134,7 +138,7 @@ class Election():
                         self.tallies[cand] += frac
 
 
-    def run_election(self):
+    def run_election(self) -> Tuple[List[int], Union[Tuple[List[int], str], str, None]]:
         '''
         runs entire election iteratively
         '''
@@ -151,5 +155,9 @@ class Election():
         return ret, extras
 
 
-    def get_threshold(self):
+    def get_threshold(self) -> float:
+        '''
+        access voting threshold
+        '''
+
         return self.threshold
