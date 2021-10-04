@@ -11,7 +11,7 @@ class Election():
     def __init__(self, num_candidates: int, path: str) -> None:
         '''
         num_candidates: number of total candidates
-        path: path to csv of votes num_voters rows and num_candidates+1 columns (column 0 is names)
+        path: path to csv of votes num_voters rows and num_candidates+2 columns (column 0 is emails, 1 is timestamp)
         '''
 
         # read csv
@@ -21,7 +21,7 @@ class Election():
     
         # init internals
         self.num_voters = data.shape[0]
-        self.num_spots = data.shape[1]-1
+        self.num_spots = data.shape[1]-2
         self.num_candidates = num_candidates
         self.winners = np.zeros(num_candidates, dtype = bool)
         self.threshold = (self.num_voters / (self.num_spots + 1)) + 1
@@ -29,9 +29,9 @@ class Election():
 
         # init indicator
         self.indicator = np.zeros((self.num_spots, self.num_voters, self.num_candidates), dtype=np.int64)
-        for i in range(1,self.num_spots+1):
+        for i in range(2,self.num_spots+2):
             for j in range(self.num_voters):
-                self.indicator[i-1, j, data.iloc[j,i]] += 1
+                self.indicator[i-2, j, data.iloc[j,i]] += 1
     
         # init tallies
         self.tallies = np.zeros(self.num_candidates)
