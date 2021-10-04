@@ -18,9 +18,9 @@ num_voters = 50
 
 
 ###
-num_candidates = 13
+num_candidates = 23
 
-elect = election.Election(num_candidates, "/Users/agdelesseps/NUGD/Responsibilities/Sailing/STV/elections_men_2.csv")
+elect = election.Election(num_candidates, "/Users/joshlevitas/Desktop/1stroundboys.csv")
 ret, extras = elect.run_election()
 
 
